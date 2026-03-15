@@ -158,49 +158,53 @@ class AuthTokenVerifier {
         return this;
     }
 
-    verify(key: CryptoKey) {
-        const isValid = AuthToken.isValid(this.token, key);
+    async verify(key: CryptoKey) {
+        const isValid = await AuthToken.isValid(this.token, key);
         if (!isValid) {
             throw new Error(VerifierErrors.invalid_token);
         }
 
         const token = AuthToken.decode(this.token);
-        const filtered = Object.entries(this).filter(
-            ([k, v]) => typeof v !== "undefined" && k !== "token",
-        );
-        filtered.forEach(([k, v]) => {
-            if (k === "claims") {
-                v.entries().forEach(
-                    ([cname, cval]: [string, string | number | undefined]) => {
-                        if (typeof cval === "undefined") {
+        Object.entries(this)
+            .filter(([k, v]) => typeof v !== "undefined" && k !== "token")
+            .forEach(([k, v]) => {
+                if (k === "claims") {
+                    v.entries().forEach(
+                        ([cname, cval]: [
+                            string,
+                            string | number | undefined,
+                        ]) => {
                             if (typeof token[cname] === "undefined") {
                                 throw new Error(
                                     VerifierErrors.claim_not_present(cname),
                                 );
+                            } else if (typeof cval !== "undefined") {
+                                const tokenCval = token[cname];
+                                if (tokenCval !== cval) {
+                                    throw new Error(
+                                        VerifierErrors.mismatched_claims_val(
+                                            cname,
+                                            cval,
+                                            tokenCval,
+                                        ),
+                                    );
+                                }
                             }
-                        } else {
-                            const tokenCval = token[cname];
-                            if (tokenCval !== cval) {
-                                throw new Error(
-                                    VerifierErrors.mismatched_claims_val(
-                                        cname,
-                                        cval,
-                                        tokenCval,
-                                    ),
-                                );
-                            }
-                        }
-                    },
-                );
-            } else {
-                const tokenVal = token[k];
-                if (token[k] !== v) {
-                    throw new Error(
-                        VerifierErrors.mismatched_claims_val(k, v, tokenVal),
+                        },
                     );
+                } else {
+                    const tokenVal = token[k];
+                    if (token[k] !== v) {
+                        throw new Error(
+                            VerifierErrors.mismatched_claims_val(
+                                k,
+                                v,
+                                tokenVal,
+                            ),
+                        );
+                    }
                 }
-            }
-        });
+            });
 
         if (Date.now() > token.exp) {
             throw new Error(VerifierErrors.expired);
