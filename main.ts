@@ -272,8 +272,8 @@ export class AuthToken {
         const isValid = await crypto.subtle.verify(
             "Ed25519",
             key,
-            body,
             footer,
+            body,
         );
 
         return isValid;
