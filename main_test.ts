@@ -5,7 +5,7 @@ import { AuthToken, exportKeyPair, generateKeyPair } from "./main.ts";
 const { publicKeyJwk, privateKeyPkcs8 } = await exportKeyPair(
     await generateKeyPair(),
 );
-const iat = 1773607866860;
+const iat = Date.now();
 const exp = iat + 30000;
 
 const encodeToken = async (
@@ -34,13 +34,14 @@ const encodeToken = async (
 const decodeToken = async (
     b64Token: string,
     type: "id" | "at" | "rt",
+    iss: string,
     sub: string,
-    ...claims: (string | number | undefined)[][]
+    ...claims: (string | string[] | number | number[] | undefined)[][]
 ) => {
     const token = AuthToken.AuthTokenVerifier(b64Token)
         .withType(type)
         .withAid("test")
-        .withIss("test_issuer")
+        .withIss(iss)
         .withIat(iat)
         .withExp(exp)
         .withSub(sub);
@@ -56,6 +57,18 @@ const decodeToken = async (
         }))!,
     );
 };
+
+Deno.test("should do it ", async () => {
+    const encoded = await encodeToken("id", "test", "ident", {
+        test_claim: "tester",
+    });
+    const decoded = await decodeToken(encoded, "id", "test_issuer", "ident", [
+        "test_claim",
+        ["tester", "tester2"],
+    ]);
+
+    console.log(decoded);
+});
 
 Deno.test(
     "should encode token - produce valid base64 body and footer",

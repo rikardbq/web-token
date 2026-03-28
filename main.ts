@@ -114,7 +114,10 @@ class AuthTokenVerifier {
     private sub: string | undefined;
     private iat: number | undefined;
     private exp: number | undefined;
-    private claims: Map<string, string | number | undefined> = new Map();
+    private claims: Map<
+        string,
+        string | string[] | number | number[] | undefined
+    > = new Map();
 
     constructor(base64Token: string) {
         this.token = base64Token;
@@ -152,7 +155,7 @@ class AuthTokenVerifier {
 
     withClaim(
         claimName: string,
-        claimVal: string | number | undefined = undefined,
+        claimVal: string | string[] | number | number[] | undefined = undefined,
     ) {
         this.claims.set(claimName, claimVal);
         return this;
@@ -172,7 +175,7 @@ class AuthTokenVerifier {
                     v.entries().forEach(
                         ([cname, cval]: [
                             string,
-                            string | number | undefined,
+                            string | string[] | number | number[] | undefined,
                         ]) => {
                             if (typeof token[cname] === "undefined") {
                                 throw new Error(
@@ -180,7 +183,11 @@ class AuthTokenVerifier {
                                 );
                             } else if (typeof cval !== "undefined") {
                                 const tokenCval = token[cname];
-                                if (tokenCval !== cval) {
+                                if (
+                                    (!Array.isArray(cval) &&
+                                        tokenCval !== cval) ||
+                                    !(cval as Array<any>).includes(tokenCval)
+                                ) {
                                     throw new Error(
                                         VerifierErrors.mismatched_claims_val(
                                             cname,
