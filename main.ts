@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { crypto } from "@std/crypto";
 
-type TokenType = "id" | "at" | "rt";
+export type TokenType = "id" | "at" | "rt";
 
 export const generateKeyPair = async () => {
     const keyPair = await crypto.subtle.generateKey(
